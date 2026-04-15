@@ -621,34 +621,28 @@ function openModal() {
   document.body.style.overflow = 'hidden';
 }
 
-async function submitWaitlist() {
+function submitWaitlist() {
   const email = document.getElementById('modal-email').value.trim();
   const errEl = document.getElementById('modal-email-err');
   const category = document.querySelector('input[name="seg"]:checked');
 
-  if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+  if (!email || !email.includes('@') || !email.includes('.')) {
     errEl.style.display = 'block';
     document.getElementById('modal-email').style.borderColor = '#c00';
     return;
   }
   errEl.style.display = 'none';
 
-  const btn = document.getElementById('modal-submit-btn');
-  btn.disabled = true;
-  btn.style.opacity = '.6';
+  // Fill hidden form and submit natively
+  document.getElementById('tally-email').value = email;
+  if (category) document.getElementById('tally-category').value = category.value;
 
-  try {
-    const fields = { 'question_oNpYJz': email };
-    if (category) fields['question_mEkZ4B'] = category.value;
-    await fetch('https://tally.so/r/lb7pAW', {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fields)
-    });
-  } catch(e) {}
-
+  // Show success screen immediately
   document.getElementById('modal-form-view').style.display = 'none';
   document.getElementById('modal-success-view').style.display = 'block';
+
+  // Submit form in background via hidden iframe
+  document.getElementById('tally-hidden-form').submit();
 }
 function closeModal() { document.getElementById('modal').classList.remove('show'); document.body.style.overflow = ''; }
 function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
@@ -670,5 +664,12 @@ if (saved === 'uk' || saved === 'ru') {
   applyLang('uk');
 }
 </script>
+
+<!-- Hidden Tally submission -->
+<iframe name="tally-hidden-frame" id="tally-hidden-frame" style="display:none"></iframe>
+<form id="tally-hidden-form" action="https://tally.so/r/lb7pAW" method="POST" target="tally-hidden-frame" style="display:none">
+  <input type="email" name="email" id="tally-email" value="">
+  <input type="text" name="category" id="tally-category" value="">
+</form>
 </body>
 </html>
