@@ -442,12 +442,32 @@
 </footer>
 
 <div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
-  <div class="modal" style="padding: 0; overflow: hidden; max-width: 520px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding: 16px 20px; border-bottom: 1px solid var(--border);">
-      <div style="font-family:var(--serif); font-size:18px; color:var(--ink);">PricePing</div>
-      <button onclick="closeModal()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--muted); line-height:1; padding:4px 8px;">&times;</button>
+  <div class="modal" id="modal-inner">
+    <div id="modal-form-view">
+      <div class="modal-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="modal-title" data-i18n="wl_title"></div>
+      <div class="modal-sub" data-i18n="wl_sub"></div>
+      <div style="margin-bottom:12px">
+        <input type="email" id="modal-email" data-i18n-placeholder="modal_email_placeholder" style="width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);font-size:14px;background:#fff;color:var(--ink);outline:none;" />
+        <div id="modal-email-err" style="font-size:12px;color:var(--color-text-danger,#c00);margin-top:4px;display:none" data-i18n="modal_email_err"></div>
+      </div>
+      <div class="modal-survey">
+        <div class="modal-survey-q" data-i18n="wl_q"></div>
+        <div class="modal-opts" id="modal-opts">
+          <label class="modal-opt"><input type="radio" name="seg" value="Електроніка та гаджети"> <span data-i18n="wl_opt1"></span></label>
+          <label class="modal-opt"><input type="radio" name="seg" value="Авіаквитки та готелі"> <span data-i18n="wl_opt2"></span></label>
+          <label class="modal-opt"><input type="radio" name="seg" value="Одяг та взуття"> <span data-i18n="wl_opt3"></span></label>
+          <label class="modal-opt"><input type="radio" name="seg" value="Моніторинг конкурентів"> <span data-i18n="wl_opt4"></span></label>
+        </div>
+      </div>
+      <button class="modal-close" id="modal-submit-btn" onclick="submitWaitlist()" data-i18n="wl_submit"></button>
     </div>
-    <iframe id="tally-iframe" src="" frameborder="0" marginheight="0" marginwidth="0" title="PricePing waitlist" style="width:100%; min-height:420px; display:block; border:none;"></iframe>
+    <div id="modal-success-view" style="display:none;text-align:center;padding:20px 0">
+      <div class="modal-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="modal-title" data-i18n="wl_success_title"></div>
+      <div class="modal-sub" data-i18n="wl_success_sub"></div>
+      <button class="modal-close" onclick="closeModal()" data-i18n="wl_close"></button>
+    </div>
   </div>
 </div>
 
@@ -508,6 +528,11 @@ const T = {
     wl_opt1:'Електроніка та гаджети', wl_opt2:'Авіаквитки та готелі',
     wl_opt3:'Одяг та взуття', wl_opt4:'Моніторинг конкурентів (бізнес)',
     wl_close:'Чудово, чекаю запуску'
+    modal_email_placeholder:'Твій email',
+    modal_email_err:'Введи коректний email',
+    wl_submit:'Записатись до списку',
+    wl_success_title:'Ти в перших рядах!',
+    wl_success_sub:'Ми повідомимо тебе першим. Слідкуй за листом.',
   },
   ru: {
     nav_how:'Как работает', nav_pricing:'Тарифы', hero_cta_btn:'Начать бесплатно',
@@ -564,6 +589,11 @@ const T = {
     wl_opt1:'Электроника и гаджеты', wl_opt2:'Авиабилеты и отели',
     wl_opt3:'Одежда и обувь', wl_opt4:'Мониторинг конкурентов (бизнес)',
     wl_close:'Отлично, жду запуска'
+    modal_email_placeholder:'Твой email',
+    modal_email_err:'Введи корректный email',
+    wl_submit:'Записаться в список',
+    wl_success_title:'Ты в первых рядах!',
+    wl_success_sub:'Мы уведомим тебя первым. Следи за письмом.',
   }
 };
 
@@ -585,10 +615,40 @@ function setLang(lang) {
 }
 
 function openModal() {
+  document.getElementById('modal-form-view').style.display = 'block';
+  document.getElementById('modal-success-view').style.display = 'none';
   document.getElementById('modal').classList.add('show');
   document.body.style.overflow = 'hidden';
-  const iframe = document.getElementById('tally-iframe');
-  if (!iframe.src) iframe.src = 'https://tally.so/embed/lb7pAW?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1';
+}
+
+async function submitWaitlist() {
+  const email = document.getElementById('modal-email').value.trim();
+  const errEl = document.getElementById('modal-email-err');
+  const category = document.querySelector('input[name="seg"]:checked');
+
+  if (!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+    errEl.style.display = 'block';
+    document.getElementById('modal-email').style.borderColor = '#c00';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('modal-submit-btn');
+  btn.disabled = true;
+  btn.style.opacity = '.6';
+
+  try {
+    const fields = { 'question_oNpYJz': email };
+    if (category) fields['question_mEkZ4B'] = category.value;
+    await fetch('https://tally.so/r/lb7pAW', {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields)
+    });
+  } catch(e) {}
+
+  document.getElementById('modal-form-view').style.display = 'none';
+  document.getElementById('modal-success-view').style.display = 'block';
 }
 function closeModal() { document.getElementById('modal').classList.remove('show'); document.body.style.overflow = ''; }
 function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
