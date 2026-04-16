@@ -621,7 +621,7 @@ function openModal() {
   document.body.style.overflow = 'hidden';
 }
 
-function submitWaitlist() {
+async function submitWaitlist() {
   const email = document.getElementById('modal-email').value.trim();
   const errEl = document.getElementById('modal-email-err');
   const category = document.querySelector('input[name="seg"]:checked');
@@ -633,16 +633,23 @@ function submitWaitlist() {
   }
   errEl.style.display = 'none';
 
-  // Fill hidden form and submit natively
-  document.getElementById('tally-email').value = email;
-  if (category) document.getElementById('tally-category').value = category.value;
+  const btn = document.getElementById('modal-submit-btn');
+  btn.disabled = true;
+  btn.style.opacity = '.6';
 
-  // Show success screen immediately
+  try {
+    await fetch('https://formspree.io/f/xaqaepwq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        email: email,
+        category: category ? category.value : 'не выбрано'
+      })
+    });
+  } catch(e) {}
+
   document.getElementById('modal-form-view').style.display = 'none';
   document.getElementById('modal-success-view').style.display = 'block';
-
-  // Submit form in background via hidden iframe
-  document.getElementById('tally-hidden-form').submit();
 }
 function closeModal() { document.getElementById('modal').classList.remove('show'); document.body.style.overflow = ''; }
 function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
@@ -665,11 +672,5 @@ if (saved === 'uk' || saved === 'ru') {
 }
 </script>
 
-<!-- Hidden Tally submission -->
-<iframe name="tally-hidden-frame" id="tally-hidden-frame" style="display:none"></iframe>
-<form id="tally-hidden-form" action="https://tally.so/r/lb7pAW" method="POST" target="tally-hidden-frame" style="display:none">
-  <input type="email" name="email" id="tally-email" value="">
-  <input type="text" name="category" id="tally-category" value="">
-</form>
 </body>
 </html>
